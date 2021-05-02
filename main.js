@@ -54,11 +54,13 @@ async function analyze(startBlock, endBlock) {
     const debtScores = debtMachine.getUserScoreArray(startBlock, endBlock)
 
     const output = { "startBlock" : startBlock, "endBlock" : endBlock, "collateralScores" : collatScores, "debtScores" : debtScores}
-
-    fs.writeFileSync('./scoreRawData.json', JSON.stringify(output, null, 2) , 'utf-8')
+    if(!process.env.SERVERLESS){
+        fs.writeFileSync('./scoreRawData.json', JSON.stringify(output, null, 2) , 'utf-8')
+    }
+    return JSON.stringify(output, null, 2)
 }
 
-async function generateAdditionalBPro() {
+async function generateAdditionalBPro(scoreRawJson) {
     const factor = new web3.utils.toBN("10").pow(new web3.utils.toBN("48"))
     const BLOCKS_PER_YEAR = 45 * 60 * 24 * 365 / 10 // 4.5 blocks per minute
     const BLOCKS_PER_MONTH = (BLOCKS_PER_YEAR / 12)
@@ -70,7 +72,7 @@ async function generateAdditionalBPro() {
     const bproPerBlockCollat = dripPerBlock.div(new web3.utils.toBN(5))
     const bproPerBlockDebt = dripPerBlock.sub(bproPerBlockCollat)
 
-    const rawScore = fs.readFileSync('./scoreRawData.json');
+    const rawScore = process.env.SERVERLESS ? scoreRawJson : fs.readFileSync('./scoreRawData.json');
     const scoreJson = JSON.parse(rawScore)
 
     let sumCollat = new web3.utils.toBN("0")
@@ -134,24 +136,25 @@ async function generateAdditionalBPro() {
 
     bproJson["sumDebt"] = sumDebt
     bproJson["sumCollat"] = sumCollat
-
-    fs.writeFileSync('./bproAdditional.json', JSON.stringify(bproJson, null, 2) , 'utf-8')
+    if(!process.env.SERVERLESS){
+        fs.writeFileSync('./bproAdditional.json', JSON.stringify(bproJson, null, 2) , 'utf-8')
+    }
     console.log({sumCollat}, {sumDebt})
+    return bproJson
 }
 
 async function main(startBlock, snapshotBlock) {   
     const rates = await initDB(startBlock, snapshotBlock)
-    await analyze(startBlock, snapshotBlock)
-    await generateAdditionalBPro()
+    const analyzeRes = await analyze(startBlock, snapshotBlock)
+    const bproJson = process.env.SERVERLESS ? await generateAdditionalBPro(analyzeRes) : JSON.parse(fs.readFileSync('./bproAdditional.json'))
 
-    const bproJson = JSON.parse(fs.readFileSync('./bproAdditional.json'))
     const snapshotJson = await MerkleEncode.encodeClaims(bproJson, 2, rates)
 
-    fs.writeFileSync('./snapshotJson.json', JSON.stringify(snapshotJson, null, 2) , 'utf-8')
+    // fs.writeFileSync('./snapshotJson.json', JSON.stringify(snapshotJson, null, 2) , 'utf-8')
 
     console.log({rates})
 
-    return "./snapshotJson.json"
+    return JSON.stringify(snapshotJson, null, 2)
 
     //MerkleEncode.testClaims('./snapshotJson.json')
 }

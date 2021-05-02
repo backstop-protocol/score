@@ -23,7 +23,8 @@ async function work() {
     console.log(startBlock, currBlock)
 
     const Main = require("./main")
-    await Main.main(startBlock, currBlock)
+    const res = await Main.main(startBlock, currBlock)
+    return res
 }
 
 
@@ -35,4 +36,6 @@ async function workAllNight() {
     setTimeout(workAllNight, 1000 * 60 * 10)
 }
 
-workAllNight()
+module.exports = {
+    work
+}
