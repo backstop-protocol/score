@@ -1,0 +1,4 @@
+node_modules
+.env
+score.zip
+.serverless
