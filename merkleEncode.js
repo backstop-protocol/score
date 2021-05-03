@@ -12,26 +12,55 @@ const rewardsDistributorAddress = "0x3fEf090ED8C8b1Ad29C9F745464dFeCE47053345"
 
 const BPROAddress = "0xbbBBBBB5AA847A2003fbC6b5C16DF0Bd1E725f61"
 
-async function encodeClaims(bproJson, cycle, rates) {
+async function encodeClaims(bproJson, prevJson, rates) {
     const calls = []
     let index = 0
 
+    const cycle = prevJson["cycle"] ? prevJson["cycle"] + 1 : 3
+
     const claimJson = {"userData" :{}}
-    const users = []
+    const uniqueUsers = []
 
     let sum = new web3.utils.toBN("0")
 
-    for(const user in bproJson["bpro"]) {
-        const amount = "0x" + bproJson["bpro"][user]["total"]
-        const maker = "0x" + bproJson["bpro"][user]["maker"]
+    // users array - not unique
+    /*
+    console.log({bproJson})
+    console.log(bproJson["bpro"])
+    console.log({prevJson})    
+    console.log(prevJson["userData"])    */
+    
+    const users = Object.keys(bproJson["bpro"]).concat(Object.keys(prevJson["userData"]))
+
+    for(const user of users /*in bproJson["bpro"]*/) {
+        let amount = new web3.utils.toBN("0")
+        let maker = new web3.utils.toBN("0")
+
+        if(user in claimJson["userData"]) continue
+
+        if(bproJson["bpro"][user]) {            
+            amount = amount.add(bproJson["bpro"][user]["total"])
+            maker = maker.add(bproJson["bpro"][user]["maker"])
+
+            //console.log({amount}, bproJson["bpro"][user]["total"], amount.toString(10), amount.toString(16))
+            //return
+        }
+        if(prevJson["userData"][user]) {
+            //console.log(prevJson["userData"][user]["amount"], prevJson["userData"][user]["maker"])
+            amount = amount.add(new web3.utils.toBN(prevJson["userData"][user]["amount"]))            
+            maker = maker.add(new web3.utils.toBN(prevJson["userData"][user]["makerAmount"]))
+        }
+
+        //const amount = "0x" + bproJson["bpro"][user]["total"]
+        //const maker = "0x" + bproJson["bpro"][user]["maker"]
         //console.log(bproJson["bpro"])
         //console.log({amount})
-        const input = [cycle, index, user, [BPROAddress], [amount]]
+        const input = [cycle, index, user, [BPROAddress], [amount.toString(10)]]
         //console.log({input})
 
         claimJson["userData"][user] = {}
-        claimJson["userData"][user]["amount"] = amount
-        claimJson["userData"][user]["makerAmount"] = maker        
+        claimJson["userData"][user]["amount"] = "0x" + amount.toString(16)
+        claimJson["userData"][user]["makerAmount"] = "0x" + maker.toString(16)
         claimJson["userData"][user]["cycle"] = cycle
         claimJson["userData"][user]["index"] = index
 
@@ -39,7 +68,7 @@ async function encodeClaims(bproJson, cycle, rates) {
 
 
         calls.push({address: rewardsDistributorAddress, abi: rewardsDistributorAbi, method: "encodeClaim", params : input})
-        users.push(user)
+        uniqueUsers.push(user)
 
         index++
     }
@@ -61,10 +90,14 @@ async function encodeClaims(bproJson, cycle, rates) {
     claimJson["endBlock"] = bproJson["endBlock"]
     claimJson["totalClaims"] = sum.toString()
     claimJson["rates"] = rates
+    claimJson["cycle"] = cycle
+
+    claimJson["sumDebt"] = bproJson["sumDebt"]
+    claimJson["sumCollat"] = bproJson["sumCollat"]
 
     for(let i = 0 ; i < leaves.length ; i++) {
         const proof = merkleTree.getHexProof(leaves[i])
-        const user = users[i]
+        const user = uniqueUsers[i]
 
         claimJson["userData"][user]["proof"] = proof
     }

@@ -30,19 +30,24 @@ const web3 = Web3Wrap.getWeb3();
 const collateralMachine = new ScoreMachine(web3)
 const debtMachine = new ScoreMachine(web3)
 
-async function initDB(startBlock, blockPrice) {
-    const rates = await Compound.getRates(ctokens, blockPrice)
+async function initDB(startBlock, prevJson) {
+    const rates = prevJson["rates"]["compRates"]
+    //const rates = await Compound.getRates(ctokens, blockPrice)
     assert(ctokens[0] === cETH, "first ctoken should be eth")
 
     const ethRate = rates["underlyingRate"][0]
-    const artRate = await Maker.getArtRate(blockPrice)
+    const artRate = prevJson["rates"]["artRate"]
+    //await Maker.getArtRate(blockPrice)
 
-    console.log({rates})
+    console.log({rates}, {artRate})
 
     await Maker.runMaker(ethRate, artRate, collateralMachine, debtMachine, startBlock)
     await Compound.runCompound(ctokens, rates["ctokenRate"], rates["underlyingRate"], collateralMachine, debtMachine, startBlock)
 
-    return { "compRates" : rates, "artRate": artRate }
+    const newRates = await Compound.getRates(ctokens, "latest")
+    const newArtRate = await Maker.getArtRate("latest")
+
+    return { "compRates" : newRates, "artRate": newArtRate }
 }
 
 async function analyze(startBlock, endBlock) {
@@ -60,7 +65,7 @@ async function analyze(startBlock, endBlock) {
     return JSON.stringify(output, null, 2)
 }
 
-async function generateAdditionalBPro(scoreRawJson) {
+async function generateAdditionalBProSnapshot(scoreRawJson) {
     const factor = new web3.utils.toBN("10").pow(new web3.utils.toBN("48"))
     const BLOCKS_PER_YEAR = 45 * 60 * 24 * 365 / 10 // 4.5 blocks per minute
     const BLOCKS_PER_MONTH = (BLOCKS_PER_YEAR / 12)
@@ -95,7 +100,7 @@ async function generateAdditionalBPro(scoreRawJson) {
         let realUser = user.toLocaleLowerCase()
         let isMaker = false
         if(user in makerUsers) {
-            console.log("maker user")
+            //console.log("maker user")
             realUser = makerUsers[user]
             isMaker = true
         }
@@ -118,7 +123,7 @@ async function generateAdditionalBPro(scoreRawJson) {
         let realUser = user.toLocaleLowerCase()
         let isMaker = false
         if(user in makerUsers) {
-            console.log("maker user")
+            //console.log("maker user")
             realUser = makerUsers[user]
             isMaker = true
         }
@@ -143,16 +148,18 @@ async function generateAdditionalBPro(scoreRawJson) {
     return bproJson
 }
 
-async function main(startBlock, snapshotBlock) {   
-    const rates = await initDB(startBlock, snapshotBlock)
+async function main(startBlock, snapshotBlock, prevSnapshot) {
+    const newRates = await initDB(startBlock, prevSnapshot)
     const analyzeRes = await analyze(startBlock, snapshotBlock)
-    const bproJson = process.env.SERVERLESS ? await generateAdditionalBPro(analyzeRes) : JSON.parse(fs.readFileSync('./bproAdditional.json'))
+    const bproAdditionalJson = await generateAdditionalBProSnapshot(analyzeRes)
 
-    const snapshotJson = await MerkleEncode.encodeClaims(bproJson, 2, rates)
+    console.log("encoding snapshot")
+
+    const snapshotJson = await MerkleEncode.encodeClaims(bproAdditionalJson, prevSnapshot, newRates)
 
     // fs.writeFileSync('./snapshotJson.json', JSON.stringify(snapshotJson, null, 2) , 'utf-8')
 
-    console.log({rates})
+    console.log({newRates})
 
     return JSON.stringify(snapshotJson, null, 2)
 
