@@ -85,6 +85,7 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
 
     console.log("getting maker users")
     const makerUsers = await Maker.getUrnToUserMapping()
+    const compoundUsers = await Compound.getAvatarToUserMapping()
     console.log({makerUsers})
     console.log("done")
 
@@ -97,13 +98,14 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
         const score = new web3.utils.toBN("0x" + scoreJson["collateralScores"][user])
         const bpro = score.mul(bproPerBlockCollat).div(factor)
 
-        let realUser = user.toLocaleLowerCase()
+        let realUser
         let isMaker = false
         if(user in makerUsers) {
             //console.log("maker user")
             realUser = makerUsers[user]
             isMaker = true
         }
+        else realUser = compoundUsers[user]
 
         if(! (realUser in bproJson["bpro"])) {
             bproJson["bpro"][realUser] = { "total" : new web3.utils.toBN("0"), "maker" : new web3.utils.toBN("0")}
@@ -120,13 +122,14 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
         const score = new web3.utils.toBN("0x" + scoreJson["debtScores"][user])
         const bpro = score.mul(bproPerBlockDebt).div(factor)
 
-        let realUser = user.toLocaleLowerCase()
+        let realUser = user
         let isMaker = false
         if(user in makerUsers) {
             //console.log("maker user")
             realUser = makerUsers[user]
             isMaker = true
         }
+        else realUser = compoundUsers[user]
 
         if(! (realUser in bproJson["bpro"])) {
             bproJson["bpro"][realUser] = { "total" : new web3.utils.toBN("0"), "maker" : new web3.utils.toBN("0")}

@@ -231,7 +231,27 @@ async function getDebt(ctokenAddresses, user, block) {
   }  
 }
 
+async function getAvatarToUserMapping() {
+  const mapping = {}
+
+  const registry = new web3.eth.Contract(registryAbi, registryAddress)
+  const avatars = await registry.methods.avatarList().call()
+
+  const calls = []
+  for(const av of avatars) {
+    calls.push({address: registryAddress, abi: registryAbi, method: "ownerOf", params: [av]})
+  }
+
+  const owners = await batch(calls, "latest")
+  for(let i = 0 ; i < avatars.length ; i++) {
+    mapping[avatars[i].toLowerCase()] = owners[i]
+  }
+
+  return mapping
+}
+
 module.exports.runCompound = runCompound
 module.exports.getRates = getRates
 module.exports.getBalances = getBalances
 module.exports.getDebt = getDebt
+module.exports.getAvatarToUserMapping = getAvatarToUserMapping
