@@ -31,14 +31,10 @@ async function getLastJson() {
 }
 
 async function work(lastBlock) {
-    let endBlock = lastBlock
-    if(! endBlock) {
-        endBlock = Number(await web3.eth.getBlockNumber() - 5)
-    }
+    let endBlock = lastBlock || Number(await web3.eth.getBlockNumber() - 5)
 
     const lastJson = await getLastJson()
     const startBlock = Number(lastJson.endBlock) + 1
-    const currBlock = await web3.eth.getBlockNumber() - 10
 
     console.log(startBlock, endBlock)
 
