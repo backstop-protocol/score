@@ -37,7 +37,7 @@ async function encodeClaims(bproJson, prevJson, rates) {
         let maker = new web3.utils.toBN("0")
 
         const userLowerCase = user.toLocaleLowerCase()
-        const userCheckSum = web3.utils.toChecksumAddress()
+        const userCheckSum = web3.utils.toChecksumAddress(user)
 
         if(userLowerCase in claimJson["userData"]) continue
 
@@ -49,7 +49,7 @@ async function encodeClaims(bproJson, prevJson, rates) {
             //return
         }
 
-        if(bproJson["bpro"][userCheckSum] && (userCheckSum !== userLowerCase)) {            
+        if(bproJson["bpro"][userCheckSum] && ((userCheckSum !== userLowerCase))) {            
             amount = amount.add(bproJson["bpro"][userCheckSum]["total"])
             maker = maker.add(bproJson["bpro"][userCheckSum]["maker"])
 
@@ -63,7 +63,7 @@ async function encodeClaims(bproJson, prevJson, rates) {
             maker = maker.add(new web3.utils.toBN(prevJson["userData"][userLowerCase]["makerAmount"]))
         }
 
-        if(prevJson["userData"][userCheckSum] && userCheckSum !== userLowerCase) {
+        if(prevJson["userData"][userCheckSum] && (userCheckSum !== userLowerCase)) {
             //console.log(prevJson["userData"][user]["amount"], prevJson["userData"][user]["maker"])
             amount = amount.add(new web3.utils.toBN(prevJson["userData"][userCheckSum]["amount"]))            
             maker = maker.add(new web3.utils.toBN(prevJson["userData"][userCheckSum]["makerAmount"]))
