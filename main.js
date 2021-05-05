@@ -102,10 +102,10 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
         let isMaker = false
         if(user in makerUsers) {
             //console.log("maker user")
-            realUser = makerUsers[user]
+            realUser = makerUsers[user].toLowerCase()
             isMaker = true
         }
-        else realUser = compoundUsers[user]
+        else realUser = compoundUsers[user].toLowerCase()
 
         if(! (realUser in bproJson["bpro"])) {
             bproJson["bpro"][realUser] = { "total" : new web3.utils.toBN("0"), "maker" : new web3.utils.toBN("0")}

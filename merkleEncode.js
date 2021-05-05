@@ -36,20 +36,38 @@ async function encodeClaims(bproJson, prevJson, rates) {
         let amount = new web3.utils.toBN("0")
         let maker = new web3.utils.toBN("0")
 
-        if(user in claimJson["userData"]) continue
+        const userLowerCase = user.toLocaleLowerCase()
+        const userCheckSum = web3.utils.toChecksumAddress()
 
-        if(bproJson["bpro"][user]) {            
-            amount = amount.add(bproJson["bpro"][user]["total"])
-            maker = maker.add(bproJson["bpro"][user]["maker"])
+        if(userLowerCase in claimJson["userData"]) continue
+
+        if(bproJson["bpro"][userLowerCase]) {            
+            amount = amount.add(bproJson["bpro"][userLowerCase]["total"])
+            maker = maker.add(bproJson["bpro"][userLowerCase]["maker"])
 
             //console.log({amount}, bproJson["bpro"][user]["total"], amount.toString(10), amount.toString(16))
             //return
         }
-        if(prevJson["userData"][user]) {
+
+        if(bproJson["bpro"][userCheckSum] && (userCheckSum !== userLowerCase)) {            
+            amount = amount.add(bproJson["bpro"][userCheckSum]["total"])
+            maker = maker.add(bproJson["bpro"][userCheckSum]["maker"])
+
+            //console.log({amount}, bproJson["bpro"][user]["total"], amount.toString(10), amount.toString(16))
+            //return
+        }        
+
+        if(prevJson["userData"][userLowerCase]) {
             //console.log(prevJson["userData"][user]["amount"], prevJson["userData"][user]["maker"])
-            amount = amount.add(new web3.utils.toBN(prevJson["userData"][user]["amount"]))            
-            maker = maker.add(new web3.utils.toBN(prevJson["userData"][user]["makerAmount"]))
+            amount = amount.add(new web3.utils.toBN(prevJson["userData"][userLowerCase]["amount"]))            
+            maker = maker.add(new web3.utils.toBN(prevJson["userData"][userLowerCase]["makerAmount"]))
         }
+
+        if(prevJson["userData"][userCheckSum] && userCheckSum !== userLowerCase) {
+            //console.log(prevJson["userData"][user]["amount"], prevJson["userData"][user]["maker"])
+            amount = amount.add(new web3.utils.toBN(prevJson["userData"][userCheckSum]["amount"]))            
+            maker = maker.add(new web3.utils.toBN(prevJson["userData"][userCheckSum]["makerAmount"]))
+        }        
 
         //const amount = "0x" + bproJson["bpro"][user]["total"]
         //const maker = "0x" + bproJson["bpro"][user]["maker"]
@@ -58,17 +76,17 @@ async function encodeClaims(bproJson, prevJson, rates) {
         const input = [cycle, index, user, [BPROAddress], [amount.toString(10)]]
         //console.log({input})
 
-        claimJson["userData"][user] = {}
-        claimJson["userData"][user]["amount"] = "0x" + amount.toString(16)
-        claimJson["userData"][user]["makerAmount"] = "0x" + maker.toString(16)
-        claimJson["userData"][user]["cycle"] = cycle
-        claimJson["userData"][user]["index"] = index
+        claimJson["userData"][userLowerCase] = {}
+        claimJson["userData"][userLowerCase]["amount"] = "0x" + amount.toString(16)
+        claimJson["userData"][userLowerCase]["makerAmount"] = "0x" + maker.toString(16)
+        claimJson["userData"][userLowerCase]["cycle"] = cycle
+        claimJson["userData"][userLowerCase]["index"] = index
 
         sum = sum.add(new web3.utils.toBN(amount))
 
 
         calls.push({address: rewardsDistributorAddress, abi: rewardsDistributorAbi, method: "encodeClaim", params : input})
-        uniqueUsers.push(user)
+        uniqueUsers.push(userLowerCase)
 
         index++
     }
