@@ -31,12 +31,28 @@ async function diff(ipfsHash, snapshotFileName) {
     const ipfsUsers = Object.keys(ipfsSnapshot.userData)
     const localUsers = Object.keys(localSnapshot.userData)
 
-    assert.equal(ipfsUsers.length, localUsers.length, "user length missmatch")
-    assert.deepEqual(ipfsUsers, localUsers, "user missmatch")
+    //assert.equal(ipfsUsers.length, localUsers.length, "user length missmatch")
+    //assert.deepEqual(ipfsUsers, localUsers, "user missmatch")
 
     const toBN = web3.utils.toBN
     const smallThreshold = toBN(100000000000000000) // 0.1 BPRO
     const tinyThreshold = toBN(10000000000000000) // 0.01 BPRO    
+
+    for(const user of ipfsUsers) {
+        if(! localSnapshot.userData[user]) {
+            console.log("new user ", user)            
+            const ipfsAmount = toBN(ipfsSnapshot.userData[user].amount)
+            assert(ipfsAmount.lt(smallThreshold), "user on ipfs but not on local")
+        }
+    }
+
+    for(const user of localUsers) {
+        if(! ipfsSnapshot.userData[user]) {
+            console.log("new user ", user, "amount ", web3.utils.fromWei(localSnapshot.userData[user].amount))
+            const localAmount = toBN(localSnapshot.userData[user].amount)
+            assert(localAmount.lt(smallThreshold), "user on local but not on ipfs")
+        }
+    }    
 
     for(const user of ipfsUsers) {
         const ipfsAmount = toBN(ipfsSnapshot.userData[user].amount)
