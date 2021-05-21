@@ -62,7 +62,7 @@ async function filter(startBlock, endBlock, collateralMachine, debtMachine, ethR
             if(decodedData.u.toString().toLowerCase() === "0xC10781aEFdB97AD3BE4f482a9743875CB13757C8".toLowerCase()) console.log("grab")
 
           collateralMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dink, ethRate, "maker_" + decodedData.ilk.toString())
-          collateralMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dart, artRate, "maker_" + decodedData.ilk.toString())
+          debtMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dart, artRate, "maker_" + decodedData.ilk.toString())
         }
         if(sig === forkSig) {
           // src get minus dink and dart, dest get plus dink and dart
