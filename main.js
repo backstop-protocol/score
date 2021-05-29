@@ -69,7 +69,7 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
     const factor = new web3.utils.toBN("10").pow(new web3.utils.toBN("48"))
     const BLOCKS_PER_YEAR = 45 * 60 * 24 * 365 / 10 // 4.5 blocks per minute
     const BLOCKS_PER_MONTH = (BLOCKS_PER_YEAR / 12)
-    const dripPerMonth = new web3.utils.toBN(web3.utils.toWei("250000")).div(new web3.utils.toBN(3))
+    const dripPerMonth = new web3.utils.toBN(web3.utils.toWei("250000")).div(new web3.utils.toBN(6))
     const dripPerBlock = dripPerMonth.div(new web3.utils.toBN(BLOCKS_PER_MONTH))
 
     console.log({dripPerBlock})
