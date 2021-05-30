@@ -149,7 +149,7 @@ async function main() {
   await parseLPEvents(sushiLPmachine, name, bproSushiAddress, proSushiStartBlock, latest)
   await setInitialLPBalance(sushiLPmachine, name, bproSushiAddress, latest)    
 
-  const bipStartBlock = proUniV2StartBlock
+  const bipStartBlock = 12533751
   const uniswapLPBalances = uniLPmachine.getBalanceArray(uniLPmachine.getAllUsers(), bipStartBlock)
   const sushiswapLPBalances = sushiLPmachine.getBalanceArray(sushiLPmachine.getAllUsers(), bipStartBlock)
   const uniswapBproBalances = bproMachine.getBalanceArray([bproUniV2Address], bipStartBlock)
@@ -197,4 +197,10 @@ function test(score, start, end) {
   console.log({total}, end-start)
 }
 
-main()
+async function worker() {
+  const result = await main()
+  const prettyResult = JSON.stringify(result)
+  console.log(prettyResult)
+
+  return prettyResult
+}
