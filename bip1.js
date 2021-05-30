@@ -204,3 +204,7 @@ async function worker() {
 
   return prettyResult
 }
+
+module.exports = {
+  getResults: worker
+}
