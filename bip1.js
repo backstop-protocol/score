@@ -199,7 +199,7 @@ function test(score, start, end) {
 
 async function worker() {
   const result = await main()
-  const prettyResult = JSON.stringify(result)
+  const prettyResult = JSON.stringify(result, null, 2)
   console.log(prettyResult)
 
   return prettyResult
