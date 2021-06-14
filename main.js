@@ -25,6 +25,11 @@ const snapshotEnd = 12347296
 
 const ctokens = [cETH, cBAT, cCOMP, cDAI, cUNI, cUSDC, cUSDT, cWBTC, cWBTC2, cZRX]
 
+const ETHA = "0x4554482d41000000000000000000000000000000000000000000000000000000"
+const ETHB = "0x4554482d42000000000000000000000000000000000000000000000000000000"
+const ETHC = "0x4554482d43000000000000000000000000000000000000000000000000000000"
+const WBTCA = "0x574254432d410000000000000000000000000000000000000000000000000000"
+
 const web3 = Web3Wrap.getWeb3();
 
 const collateralMachine = new ScoreMachine(web3)
@@ -34,12 +39,17 @@ async function initDB(startBlock, prevJson) {
     const rates = prevJson["rates"]["compRates"]
     //const rates = await Compound.getRates(ctokens, blockPrice)
     assert(ctokens[0] === cETH, "first ctoken should be eth")
+    assert(ctokens[ctokens.length - 2] === cWBTC2, "second ctoken before last should be wbtc")    
 
-    const ethRate = rates["underlyingRate"][0]
+    const ethRate = {}
+    ethRate[ETHA] = ethRate[ETHB] = ethRate[ETHC] = rates["underlyingRate"][0]
+    const wbtcRate = rates["underlyingRate"][ctokens.length - 2]
+    const normWbtcRate = new web3.utils.toBN(rates["underlyingRate"][ctokens.length - 2]).div(new web3.utils.toBN(10).pow(new web3.utils.toBN(10)))
+    ethRate[WBTCA] = normWbtcRate.toString(16)
     const artRate = prevJson["rates"]["artRate"]
     //await Maker.getArtRate(blockPrice)
 
-    console.log({rates}, {artRate})
+    console.log({rates}, {artRate},{ethRate})
 
     await Maker.runMaker(ethRate, artRate, collateralMachine, debtMachine, startBlock)
     await Compound.runCompound(ctokens, rates["ctokenRate"], rates["underlyingRate"], collateralMachine, debtMachine, startBlock)
