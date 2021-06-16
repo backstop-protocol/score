@@ -19,6 +19,7 @@ const grabSig = web3.utils.soliditySha3('grab(bytes32,address,address,address,in
 const ETHA = "0x4554482d41000000000000000000000000000000000000000000000000000000"
 const ETHB = "0x4554482d42000000000000000000000000000000000000000000000000000000"
 const ETHC = "0x4554482d43000000000000000000000000000000000000000000000000000000"
+const WBTCA = "0x574254432d410000000000000000000000000000000000000000000000000000"
 
 function minus(bn) {
   return new web3.utils.toBN("-1").mul(new web3.utils.toBN(bn))
@@ -46,7 +47,7 @@ async function filter(startBlock, endBlock, collateralMachine, debtMachine, ethR
             {'type': 'int256','name': 'dink'},
             {'type': 'int256','name': 'dart'}
           ], importantData)
-          collateralMachine.addDelta(decodedData.u, e.blockNumber,decodedData.dink, ethRate, "maker_" + decodedData.ilk.toString())
+          collateralMachine.addDelta(decodedData.u, e.blockNumber,decodedData.dink, ethRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
           debtMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dart, artRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
 
           if(decodedData.u.toString().toLowerCase() === "0xC10781aEFdB97AD3BE4f482a9743875CB13757C8".toLowerCase()) console.log("frob")
@@ -63,7 +64,7 @@ async function filter(startBlock, endBlock, collateralMachine, debtMachine, ethR
             ], importantData)
             if(decodedData.u.toString().toLowerCase() === "0xC10781aEFdB97AD3BE4f482a9743875CB13757C8".toLowerCase()) console.log("grab")
 
-          collateralMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dink, ethRate, "maker_" + decodedData.ilk.toString())
+          collateralMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dink, ethRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
           debtMachine.addDelta(decodedData.u, e.blockNumber, decodedData.dart, artRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
         }
         if(sig === forkSig) {
@@ -78,10 +79,10 @@ async function filter(startBlock, endBlock, collateralMachine, debtMachine, ethR
             if(decodedData.dst.toString().toLowerCase() === "0xC10781aEFdB97AD3BE4f482a9743875CB13757C8".toLowerCase()) console.log("fork dst")
             if(decodedData.src.toString().toLowerCase() === "0xC10781aEFdB97AD3BE4f482a9743875CB13757C8".toLowerCase()) console.log("fork dst")            
 
-          collateralMachine.addDelta(decodedData.dst, e.blockNumber, decodedData.dink, ethRate, "maker_"  + decodedData.dink.toString())
+          collateralMachine.addDelta(decodedData.dst, e.blockNumber, decodedData.dink, ethRate[decodedData.ilk], "maker_"  + decodedData.dink.toString())
           debtMachine.addDelta(decodedData.dst, e.blockNumber, decodedData.dart, artRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
 
-          collateralMachine.addDelta(decodedData.src, e.blockNumber, minus(decodedData.dink), ethRate, "maker_" + decodedData.ilk.toString())
+          collateralMachine.addDelta(decodedData.src, e.blockNumber, minus(decodedData.dink), ethRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
           debtMachine.addDelta(decodedData.src, e.blockNumber, minus(decodedData.dart), artRate[decodedData.ilk], "maker_" + decodedData.ilk.toString())
       	}
     }
@@ -168,7 +169,7 @@ async function initUsersBatch(collateralMachine, debtMachine, ethRate, artRate, 
     if((collateralMachine !== null) && (debtMachine !== null)) {
       collateralMachine.setRelevantUser(urn)
       debtMachine.setRelevantUser(urn)
-      collateralMachine.setInitialBalance(urn, block, ink, ethRate,  "maker_" + ilk.toString())
+      collateralMachine.setInitialBalance(urn, block, ink, ethRate[ilk],  "maker_" + ilk.toString())
       debtMachine.setInitialBalance(urn, block, art, artRate[ilk], "maker_" + ilk.toString())
     }
   }
@@ -187,12 +188,12 @@ async function runMaker(ethRate, artRate, collateralMachine, debtMachine, startB
   //const ethRate = web3.utils.toWei("2200")
   const block = await web3.eth.getBlockNumber() - 10 // minus 10 to avoid reorg
 
-  if(! artRate[ETHA]) {
+  if(! artRate[WBTCA]) {
     console.log("making a dicionary from art rate")
-    artRate = { [ETHA] : artRate, [ETHB] : artRate, [ETHC] : artRate }
+    artRate[WBTCA] = artRate[ETHA]
   }
 
-  const res = await initUsersBatch(collateralMachine, debtMachine, ethRate, artRate, [ETHA, ETHB, ETHC], block)
+  const res = await initUsersBatch(collateralMachine, debtMachine, ethRate, artRate, [ETHA, ETHB, ETHC, WBTCA], block)
   const endBlock = res.block
   console.log({endBlock})
   const step = 2e4
@@ -223,18 +224,20 @@ async function getArtRate(block) {
   const ilkInfoA = await vat.methods.ilks(ETHA).call(block)
   const ilkInfoB = await vat.methods.ilks(ETHB).call(block)
   const ilkInfoC = await vat.methods.ilks(ETHC).call(block)    
+  const ilkInfoWbtcA = await vat.methods.ilks(WBTCA).call(block)
 
   const rateBNA = new web3.utils.toBN(ilkInfoA.rate)
   const rateBNB = new web3.utils.toBN(ilkInfoB.rate)
   const rateBNC = new web3.utils.toBN(ilkInfoC.rate)
+  const rateBNW = new web3.utils.toBN(ilkInfoWbtcA.rate)
 
   const rayToWadFactor = new web3.utils.toBN(1e9)
 
-  return { [ETHA] : rateBNA.div(rayToWadFactor), [ETHB] : rateBNB.div(rayToWadFactor), [ETHC] : rateBNC.div(rayToWadFactor) }
+  return { [ETHA] : rateBNA.div(rayToWadFactor), [ETHB] : rateBNB.div(rayToWadFactor), [ETHC] : rateBNC.div(rayToWadFactor), [WBTCA] : rateBNW.div(rayToWadFactor) }
 }
 
 async function getBalances(block) {
-  const output = await initUsersBatch(null, null, null, null, [ETHA, ETHB, ETHC], block)
+  const output = await initUsersBatch(null, null, null, null, [ETHA, ETHB, ETHC, WBTCA], block)
 
   return output
 }
