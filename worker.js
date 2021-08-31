@@ -21,7 +21,7 @@ async function getLastJson() {
     const contract = new web3.eth.Contract(rewardsDistributorAbi, rewardsDistributorAddress)
     const merkleData = await contract.methods.getMerkleData().call()
 
-    const ipfsHash = merkleData[2]
+    const ipfsHash = "QmPUAKtJSBX9sDJw47gxXTdKvvEQhxorqzT2bYDKDgbLBc" //merkleData[2]
     const url = "https://cloudflare-ipfs.com/ipfs/" + ipfsHash
     console.log(url)
     const json = await axios.get(url)
