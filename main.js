@@ -1,6 +1,7 @@
 const ScoreMachine = require('./score')
 const Maker = require('./maker')
 const Compound = require('./compound')
+const Liquity = require('./liquity')
 const MerkleEncode = require('./merkleEncode')
 const Web3Wrap = require('./web3Wrapper')
 const fs = require('fs');
@@ -18,12 +19,19 @@ const cUSDT = "0xf650c3d88d12db855b8bf7d11be6c55a4e07dcc9"
 const cWBTC = "0xc11b1268c1a384e55c48c2391d8d480264a3a7f4"
 const cWBTC2 = "0xccf4429db6322d5c611ee964527d42e5d685dd6a"
 const cZRX = "0xb3319f5d18bc0d84dd1b4825dcde5d5f7266d407"
+const cAAVE = "0xe65cdb6479bac1e22340e4e755fae7e509ecd06c" 
+const cMKR = "0x95b4ef2869ebd94beb4eee400a99824bf5dc325b"
+const cSUSHI = "0x4b0181102a0112a2ef11abee5563bb4a3176c9d7"
+const cLINK = "0xface851a4921ce59e912d19329929ce6da6eb0c7"
+const cTUSD = "0x12392f67bdf24fae0af363c24ac620a2f67dad86"
+const cYFI = "0x80a2ae356fc9ef4305676f7a3e2ed04e12c33946"
+
 
 const start = 12304534
 //const curr = 12304534
 const snapshotEnd = 12347296
 
-const ctokens = [cETH, cBAT, cCOMP, cDAI, cUNI, cUSDC, cUSDT, cWBTC, cWBTC2, cZRX]
+const ctokens = [cETH, cBAT, cCOMP, cDAI, cUNI, cUSDC, cUSDT, cWBTC, cZRX, cAAVE, cMKR, cSUSHI, cLINK, cTUSD, cWBTC2, cYFI]
 
 const ETHA = "0x4554482d41000000000000000000000000000000000000000000000000000000"
 const ETHB = "0x4554482d42000000000000000000000000000000000000000000000000000000"
@@ -34,9 +42,10 @@ const web3 = Web3Wrap.getWeb3();
 
 const collateralMachine = new ScoreMachine(web3)
 const debtMachine = new ScoreMachine(web3)
+const v2Machine = new ScoreMachine(web3)
 
 async function initDB(startBlock, prevJson) {
-    const rates = prevJson["rates"]["compRates"]
+    const rates = await Compound.getRates(ctokens, "latest")//prevJson["rates"]["compRates"]
     //const rates = await Compound.getRates(ctokens, blockPrice)
     assert(ctokens[0] === cETH, "first ctoken should be eth")
     assert(ctokens[ctokens.length - 2] === cWBTC2, "second ctoken before last should be wbtc")    
@@ -53,6 +62,9 @@ async function initDB(startBlock, prevJson) {
 
     await Maker.runMaker(ethRate, artRate, collateralMachine, debtMachine, startBlock)
     await Compound.runCompound(ctokens, rates["ctokenRate"], rates["underlyingRate"], collateralMachine, debtMachine, startBlock)
+    await Liquity.runLiquity("0x0d3AbAA7E088C2c82f54B2f47613DA438ea8C598", v2Machine, startBlock)
+    await Liquity.runLiquity("0x0d3AbAA7E088C2c82f54B2f47613DA438ea8C598", collateralMachine, startBlock)
+    await Liquity.runLiquity("0x0d3AbAA7E088C2c82f54B2f47613DA438ea8C598", debtMachine, startBlock)
 
     const newRates = await Compound.getRates(ctokens, "latest")
     const newArtRate = await Maker.getArtRate("latest")
@@ -67,8 +79,9 @@ async function analyze(startBlock, endBlock) {
     
     const collatScores = collateralMachine.getUserScoreArray(startBlock, endBlock)
     const debtScores = debtMachine.getUserScoreArray(startBlock, endBlock)
+    const v2Scores = v2Machine.getUserScoreArray(startBlock, endBlock)
 
-    const output = { "startBlock" : startBlock, "endBlock" : endBlock, "collateralScores" : collatScores, "debtScores" : debtScores}
+    const output = { "startBlock" : startBlock, "endBlock" : endBlock, "collateralScores" : collatScores, "debtScores" : debtScores, "v2Scores" : v2Scores}
     if(!process.env.SERVERLESS){
         fs.writeFileSync('./scoreRawData.json', JSON.stringify(output, null, 2) , 'utf-8')
     }
@@ -79,7 +92,7 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
     const factor = new web3.utils.toBN("10").pow(new web3.utils.toBN("48"))
     const BLOCKS_PER_YEAR = 45 * 60 * 24 * 365 / 10 // 4.5 blocks per minute
     const BLOCKS_PER_MONTH = (BLOCKS_PER_YEAR / 12)
-    const dripPerMonth = new web3.utils.toBN(web3.utils.toWei("250000")).div(new web3.utils.toBN(6))
+    const dripPerMonth = new web3.utils.toBN(web3.utils.toWei("90000")).div(new web3.utils.toBN(3))
     const dripPerBlock = dripPerMonth.div(new web3.utils.toBN(BLOCKS_PER_MONTH))
 
     console.log({dripPerBlock})
@@ -115,7 +128,8 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
             realUser = makerUsers[user].toLowerCase()
             isMaker = true
         }
-        else realUser = compoundUsers[user].toLowerCase()
+        else if(user in compoundUsers) realUser = compoundUsers[user].toLowerCase()
+        else realUser = user.toLocaleLowerCase() // v2 user
 
         if(! (realUser in bproJson["bpro"])) {
             bproJson["bpro"][realUser] = { "total" : new web3.utils.toBN("0"), "maker" : new web3.utils.toBN("0")}
@@ -139,7 +153,8 @@ async function generateAdditionalBProSnapshot(scoreRawJson) {
             realUser = makerUsers[user]
             isMaker = true
         }
-        else realUser = compoundUsers[user]
+        else if(user in compoundUsers) realUser = compoundUsers[user].toLowerCase()
+        else realUser = user.toLocaleLowerCase() // v2 user
 
         if(! (realUser in bproJson["bpro"])) {
             bproJson["bpro"][realUser] = { "total" : new web3.utils.toBN("0"), "maker" : new web3.utils.toBN("0")}

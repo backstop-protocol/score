@@ -4,7 +4,7 @@ const axios = require('axios')
 const fs = require('fs')
 
 const { rewardsDistributorAbi } = require("./merkleEncodeAbi")
-const rewardsDistributorAddress = "0x3fEf090ED8C8b1Ad29C9F745464dFeCE47053345"
+const rewardsDistributorAddress = "0xAf50fe9282e1bE8C08b899a51628a085E81d0D57"
 
 /*
 async function getLastEndBlock() {

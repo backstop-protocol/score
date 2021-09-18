@@ -70,7 +70,8 @@ class ScoreMachine {
         currBalance = currBalance.sub(dbalance)
       }
 
-      assert(currBalance.gte(this.web3.utils.toBN("0")), "negative balance " + i.toString() + " " + currBalance.toString())
+      //assert(currBalance.gte(this.web3.utils.toBN("0")), "negative balance " + i.toString() + " " + currBalance.toString())
+      if(currBalance.lte(this.web3.utils.toBN("0"))) currBalance = this.web3.utils.toBN("0")
 
       balanceArray[i - startBlock] = currBalance
       //console.log("balance ", i, currBalance.toString())
