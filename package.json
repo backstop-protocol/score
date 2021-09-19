@@ -17,7 +17,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node worker",
     "calc": "sls invoke local -f calc",
-    "bip1": "sls invoke local -f bip1"
+    "bip4": "sls invoke local -f bip4"
   },
   "author": "smart future labs",
   "license": "ISC"
