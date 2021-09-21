@@ -45,7 +45,7 @@ const debtMachine = new ScoreMachine(web3)
 const v2Machine = new ScoreMachine(web3)
 
 async function initDB(startBlock, prevJson) {
-    const rates = await Compound.getRates(ctokens, "latest")//prevJson["rates"]["compRates"]
+    const rates = prevJson["rates"]["compRates"]
     //const rates = await Compound.getRates(ctokens, blockPrice)
     assert(ctokens[0] === cETH, "first ctoken should be eth")
     assert(ctokens[ctokens.length - 2] === cWBTC2, "second ctoken before last should be wbtc")    
