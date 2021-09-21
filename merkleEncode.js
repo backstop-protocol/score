@@ -10,7 +10,7 @@ const { rewardsDistributorAbi } = require("./merkleEncodeAbi");
 const assert = require("assert");
 const rewardsDistributorAddress = "0xAf50fe9282e1bE8C08b899a51628a085E81d0D57"
 
-const BPROAddress = "0xbbBBBBB5AA847A2003fbC6b5C16DF0Bd1E725f61" // TODO change to uma
+const BPROAddress = "0xC7F0e3118B24f30A6Aa7d703E198996F04B64e32"
 
 async function encodeClaims(bproJson, prevJson, rates) {
     const calls = []
