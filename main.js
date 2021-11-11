@@ -62,9 +62,15 @@ async function initDB(startBlock, prevJson) {
 
     await Maker.runMaker(ethRate, artRate, collateralMachine, debtMachine, startBlock)
     await Compound.runCompound(ctokens, rates["ctokenRate"], rates["underlyingRate"], collateralMachine, debtMachine, startBlock)
+
     await Liquity.runLiquity("0x0d3AbAA7E088C2c82f54B2f47613DA438ea8C598", v2Machine, startBlock)
     await Liquity.runLiquity("0x0d3AbAA7E088C2c82f54B2f47613DA438ea8C598", collateralMachine, startBlock)
     await Liquity.runLiquity("0x0d3AbAA7E088C2c82f54B2f47613DA438ea8C598", debtMachine, startBlock)
+
+    await Liquity.runLiquity("0x54bC9113f1f55cdBDf221daf798dc73614f6D972", v2Machine, startBlock)
+    await Liquity.runLiquity("0x54bC9113f1f55cdBDf221daf798dc73614f6D972", collateralMachine, startBlock)
+    await Liquity.runLiquity("0x54bC9113f1f55cdBDf221daf798dc73614f6D972", debtMachine, startBlock)
+
 
     const newRates = await Compound.getRates(ctokens, "latest")
     const newArtRate = await Maker.getArtRate("latest")
